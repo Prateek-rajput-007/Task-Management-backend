@@ -12,7 +12,13 @@ const app = express();
 
 connectDB();
 
-app.use(cors({ origin: 'http://localhost:3000' }));
+app.use(
+  cors({
+    origin: "https://task-mangement-frontend-kappa.vercel.app", // Directly using the client URL
+    methods: ["GET", "POST", "DELETE", "PUT"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
