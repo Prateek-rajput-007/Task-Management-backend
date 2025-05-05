@@ -12,13 +12,21 @@ const app = express();
 
 connectDB();
 
-app.use(
-  cors({
-    origin: "https://task-mangement-frontend-kappa.vercel.app", // Directly using the client URL
-    methods: ["GET", "POST", "DELETE", "PUT"],
-    credentials: true,
-  })
-);
+const allowedOrigins = [
+  'https://task-mangement-frontend-kappa.vercel.app',
+  'https://comforting-gnome-40c18b.netlify.app'
+]
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true)
+    } else {
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true
+}))
 app.use(express.json());
 
 app.use('/api/auth', authRoutes);
