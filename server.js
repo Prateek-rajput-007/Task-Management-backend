@@ -11,7 +11,16 @@ const notificationRoutes = require('./src/routes/notificationRoutes');
 const app = express();
 
 connectDB();
-
+// Debug middleware to log raw request
+app.use((req, res, next) => {
+  console.log('Incoming request:', {
+    method: req.method,
+    url: req.url,
+    headers: req.headers,
+    body: req.body,
+  });
+  next();
+});
 const allowedOrigins = [
   'https://task-mangement-frontend-kappa.vercel.app',
   'https://comforting-gnome-40c18b.netlify.app'
