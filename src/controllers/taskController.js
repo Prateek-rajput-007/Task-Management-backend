@@ -176,7 +176,7 @@ exports.createTask = async (req, res) => {
 
   try {
     const { title, description, dueDate, priority, status, assignedTo } = req.body;
-    console.log('Creating task with data:', req.body); // Debug log full body
+    console.log('Creating task with data:', req.body);
     const task = new Task({
       title,
       description,
