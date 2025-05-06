@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const TaskSchema = new mongoose.Schema({
   title: {
     type: String,
-    required: true,
+    required: [true, 'Title is required'],
     trim: true,
   },
   description: {
@@ -12,26 +12,39 @@ const TaskSchema = new mongoose.Schema({
   },
   dueDate: {
     type: Date,
-    required: true,
+    required: [true, 'Due date is required'],
+    validate: {
+      validator: function (value) {
+        return !isNaN(new Date(value).getTime());
+      },
+      message: 'Invalid due date',
+    },
   },
   priority: {
     type: String,
-    enum: ['low', 'medium', 'high'],
+    enum: {
+      values: ['low', 'medium', 'high'],
+      message: 'Priority must be low, medium, or high',
+    },
     default: 'medium',
   },
   status: {
     type: String,
-    enum: ['todo', 'in-progress', 'completed'],
+    enum: {
+      values: ['todo', 'in-progress', 'completed'],
+      message: 'Status must be todo, in-progress, or completed',
+    },
     default: 'todo',
   },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true,
+    required: [true, 'Created by user is required'],
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    default: null,
   },
   createdAt: {
     type: Date,
