@@ -165,8 +165,6 @@ exports.updateTask = async (req, res) => {
       updates.assignedTo = assignedTo === '' ? null : assignedTo;
       if (assignedTo && assignedTo !== task.assignedTo?.toString()) {
         try {
- Tertiary
-        {
           if (!mongoose.isValidObjectId(assignedTo)) {
             console.log('Invalid assignedTo ID:', assignedTo);
             return res.status(400).json({ message: 'Invalid assignedTo ID' });
