@@ -144,13 +144,24 @@ exports.updateTask = async (req, res) => {
     }
 
     // Find task
-    const task = await Task.findById(req.params.id);
+    console.log('Fetching task with ID:', req.params.id);
+    let task;
+    try {
+      task = await Task.findById(req.params.id);
+    } catch (dbError) {
+      console.error('Task fetch error:', {
+        message: dbError.message,
+        stack: dbError.stack,
+      });
+      return res.status(500).json({ message: 'Failed to fetch task from database', error: dbError.message });
+    }
     if (!task) {
       console.log('Task not found for ID:', req.params.id);
       return res.status(404).json({ message: 'Task not found' });
     }
 
     // Check permissions
+    console.log('Checking permissions for user:', req.user.id, 'on task:', task._id);
     if (
       req.user.role !== 'admin' &&
       task.createdBy.toString() !== req.user.id
@@ -164,6 +175,7 @@ exports.updateTask = async (req, res) => {
     if (req.user.role === 'admin' && assignedTo !== undefined) {
       updates.assignedTo = assignedTo === '' ? null : assignedTo;
       if (assignedTo && assignedTo !== task.assignedTo?.toString()) {
+        console.log('Creating notification for reassignment to user:', assignedTo);
         try {
           if (!mongoose.isValidObjectId(assignedTo)) {
             console.log('Invalid assignedTo ID:', assignedTo);
@@ -186,11 +198,21 @@ exports.updateTask = async (req, res) => {
     }
 
     // Update task
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.id,
-      { $set: updates },
-      { new: true, runValidators: true }
-    );
+    console.log('Updating task with ID:', req.params.id, 'with data:', updates);
+    let updatedTask;
+    try {
+      updatedTask = await Task.findByIdAndUpdate(
+        req.params.id,
+        { $set: updates },
+        { new: true, runValidators: true }
+      );
+    } catch (dbError) {
+      console.error('Task update error:', {
+        message: dbError.message,
+        stack: dbError.stack,
+      });
+      return res.status(500).json({ message: 'Failed to update task in database', error: dbError.message });
+    }
     if (!updatedTask) {
       console.log('Task update failed for ID:', req.params.id);
       return res.status(404).json({ message: 'Task not found' });
