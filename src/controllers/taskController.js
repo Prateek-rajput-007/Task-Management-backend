@@ -162,7 +162,6 @@
 //   }
 // };
 
-
 const Task = require('../models/Task');
 const Notification = require('../models/Notification');
 const { validationResult } = require('express-validator');
@@ -170,13 +169,12 @@ const { validationResult } = require('express-validator');
 exports.createTask = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('Create task validation errors:', errors.array());
     return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
   }
 
   try {
     const { title, description, dueDate, priority, status, assignedTo } = req.body;
-    console.log('Creating task with data:', req.body);
+    console.log('Creating task with data:', { title, dueDate, assignedTo, userId: req.user.id }); // Debug log
     const task = new Task({
       title,
       description,
@@ -227,7 +225,7 @@ exports.getTasks = async (req, res) => {
     if (status) query.status = status;
     if (priority) query.priority = priority;
 
-    console.log('Fetching tasks with query:', query);
+    console.log('Fetching tasks with query:', query); // Debug log
     const tasks = await Task.find(query)
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email')
@@ -242,7 +240,7 @@ exports.getTasks = async (req, res) => {
 
 exports.getTask = async (req, res) => {
   try {
-    console.log('Fetching task with ID:', req.params.id);
+    console.log('Fetching task with ID:', req.params.id); // Debug log
     const task = await Task.findById(req.params.id)
       .populate('createdBy', 'name email')
       .populate('assignedTo', 'name email');
@@ -266,12 +264,11 @@ exports.getTask = async (req, res) => {
 exports.updateTask = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    console.log('Update task validation errors:', errors.array());
     return res.status(400).json({ message: 'Validation failed', errors: errors.array() });
   }
 
   try {
-    console.log('Updating task with ID:', req.params.id, 'and data:', req.body);
+    console.log('Updating task with ID:', req.params.id, 'and data:', req.body); // Debug log
     const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -315,7 +312,7 @@ exports.updateTask = async (req, res) => {
 
 exports.deleteTask = async (req, res) => {
   try {
-    console.log('Deleting task with ID:', req.params.id);
+    console.log('Deleting task with ID:', req.params.id); // Debug log
     const task = await Task.findById(req.params.id);
     if (!task) {
       return res.status(404).json({ message: 'Task not found' });
@@ -330,7 +327,7 @@ exports.deleteTask = async (req, res) => {
     res.json({ message: 'Task deleted' });
   } catch (error) {
     console.error('Delete task error:', error);
-    res.status(400).json({ message: error.message || 'Failed to delete task' });
+    res.status(500).json({ message: error.message || 'Failed to delete task' });
   }
 };
 
@@ -339,7 +336,7 @@ exports.getTaskStats = async (req, res) => {
     const query = req.user.role === 'user'
       ? { $or: [{ createdBy: req.user.id }, { assignedTo: req.user.id }] }
       : {};
-    console.log('Fetching task stats with query:', query);
+    console.log('Fetching task stats with query:', query); // Debug log
     const tasks = await Task.find(query);
     const stats = {
       total: tasks.length,
