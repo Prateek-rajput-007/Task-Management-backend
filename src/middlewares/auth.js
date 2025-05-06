@@ -32,7 +32,17 @@ const protect = async (req, res, next) => {
     }
 
     // Fetch user
-    const user = await User.findById(decoded.id).select('-password');
+    console.log('Fetching user with ID:', decoded.id);
+    let user;
+    try {
+      user = await User.findById(decoded.id).select('-password');
+    } catch (dbError) {
+      console.error('User fetch error:', {
+        message: dbError.message,
+        stack: dbError.stack,
+      });
+      return res.status(500).json({ message: 'Failed to fetch user from database', error: dbError.message });
+    }
     if (!user) {
       console.log('User not found for ID:', decoded.id);
       return res.status(401).json({ message: 'Not authorized, user not found' });
