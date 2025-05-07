@@ -21,6 +21,17 @@ app.use((req, res, next) => {
   });
   next();
 });
+
+// Global error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method
+  });
+  res.status(500).json({ message: 'Server error', error: err.message });
+});
 const allowedOrigins = [
   'https://task-mangement-frontend-kappa.vercel.app',
   'https://comforting-gnome-40c18b.netlify.app'
