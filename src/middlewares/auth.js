@@ -34,7 +34,6 @@
 
 // module.exports = protect;
 
-
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
@@ -69,4 +68,23 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = protect;
+const role = (roles) => {
+  return (req, res, next) => {
+    if (!req.user || !roles.includes(req.user.role)) {
+      console.error('Role middleware: Access denied', {
+        userId: req.user?._id,
+        userRole: req.user?.role,
+        requiredRoles: roles
+      });
+      return res.status(403).json({ message: 'Access denied: Insufficient role' });
+    }
+    console.log('Role middleware: Access granted', {
+      userId: req.user._id,
+      userRole: req.user.role,
+      requiredRoles: roles
+    });
+    next();
+  };
+};
+
+module.exports = { protect, role };
