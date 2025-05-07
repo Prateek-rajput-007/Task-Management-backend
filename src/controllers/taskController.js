@@ -308,8 +308,6 @@
 
 // module.exports = { getTasks, getTask, createTask, updateTask, deleteTask };
 
-
-
 const Task = require('../models/Task');
 
 const getTasks = async (req, res) => {
@@ -434,53 +432,32 @@ const getTaskStats = async (req, res) => {
     }
     console.log('Fetching task stats for user:', req.user._id);
 
-    const stats = await Task.aggregate([
-      // Match tasks created by the user
-      { $match: { createdBy: req.user._id } },
-      // Group to compute totals
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          completed: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-          },
-          overdue: {
-            $sum: {
-              $cond: [
-                {
-                  $and: [
-                    { $ne: ['$status', 'completed'] },
-                    { $lt: ['$dueDate', new Date()] }
-                  ]
-                },
-                1,
-                0
-              ]
-            }
-          }
-        }
-      },
-      // Project to format output
-      {
-        $project: {
-          _id: 0,
-          total: 1,
-          completed: 1,
-          overdue: 1
-        }
-      }
-    ]);
+    const tasks = await Task.find({ createdBy: req.user._id });
+    console.log('Tasks fetched:', tasks.length);
 
-    // If no tasks, return zeros
-    const result = stats.length > 0 ? stats[0] : { total: 0, completed: 0, overdue: 0 };
-    console.log('Task stats result:', result);
-    res.status(200).json(result);
+    const now = new Date();
+    const stats = tasks.reduce(
+      (acc, task) => {
+        acc.total += 1;
+        if (task.status === 'completed') {
+          acc.completed += 1;
+        }
+        if (task.status !== 'completed' && task.dueDate && new Date(task.dueDate) < now) {
+          acc.overdue += 1;
+        }
+        return acc;
+      },
+      { total: 0, completed: 0, overdue: 0 }
+    );
+
+    console.log('Task stats result:', stats);
+    res.status(200).json(stats);
   } catch (error) {
     console.error('Get task stats error:', {
       message: error.message,
       stack: error.stack,
-      userId: req.user?._id
+      userId: req.user?._id,
+      errorDetails: error
     });
     res.status(500).json({ message: 'Server error while fetching task stats', error: error.message });
   }
