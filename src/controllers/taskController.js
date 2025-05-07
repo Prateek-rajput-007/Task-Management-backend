@@ -307,7 +307,6 @@
 // };
 
 // module.exports = { getTasks, getTask, createTask, updateTask, deleteTask };
-
 const Task = require('../models/Task');
 
 const getTasks = async (req, res) => {
@@ -442,7 +441,6 @@ const getTaskStats = async (req, res) => {
         stack: dbError.stack,
         userId: req.user._id
       });
-      // Fallback response to prevent 500 error
       return res.status(200).json({ total: 0, completed: 0, overdue: 0 });
     }
 
@@ -476,7 +474,6 @@ const getTaskStats = async (req, res) => {
 
 const getHealth = async (req, res) => {
   try {
-    // Test MongoDB connection by querying a single task
     await Task.findOne().limit(1);
     res.status(200).json({ status: 'healthy', mongodb: 'connected' });
   } catch (error) {
