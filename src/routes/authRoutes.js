@@ -1,87 +1,36 @@
-// const express = require('express');
-// const router = express.Router();
-// const { register, login, getMe } = require('../controllers/authController');
-// const { protect } = require('../middlewares/auth');
-// const { check, validationResult } = require('express-validator');
-
-// router.post(
-//   '/register',
-//   [
-//     check('name', 'Name is required').not().isEmpty(),
-//     check('email', 'Please include a valid email').isEmail(),
-//     check('password', 'Password must be at least 6 characters').isLength({ min: 6 }),
-//     check('role', 'Role must be user or admin').isIn(['user', 'admin']),
-//   ],
-//   register
-// );
-
-// router.post(
-//   '/login',
-//   [
-//     check('email', 'Please include a valid email').isEmail(),
-//     check('password', 'Password is required').exists(),
-//   ],
-//   (req, res, next) => {
-//     const errors = validationResult(req);
-//     if (!errors.isEmpty()) {
-//       return res.status(400).json({ errors: errors.array() });
-//     }
-//     next();
-//   },
-//   login
-// );
-
-// router.get('/me', protect, getMe);
-
-// module.exports = router;
-
 const express = require('express');
 const router = express.Router();
 const { register, login, getMe } = require('../controllers/authController');
 const { protect } = require('../middlewares/auth');
 const { check, validationResult } = require('express-validator');
 
-// Safe routing to catch undefined handlers
-const safeRoute = (method, path, ...handlers) => {
-  const validHandlers = handlers.filter(handler => {
-    if (typeof handler !== 'function') {
-      console.error(`Invalid handler for ${method} ${path}:`, handler);
-      return false;
+router.post(
+  '/register',
+  [
+    check('name', 'Name is required').not().isEmpty(),
+    check('email', 'Please include a valid email').isEmail(),
+    check('password', 'Password must be at least 6 characters').isLength({ min: 6 }),
+    check('role', 'Role must be user or admin').isIn(['user', 'admin']),
+  ],
+  register
+);
+
+router.post(
+  '/login',
+  [
+    check('email', 'Please include a valid email').isEmail(),
+    check('password', 'Password is required').exists(),
+  ],
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
     }
-    return true;
-  });
-  router[method.toLowerCase()](path, ...validHandlers);
-};
+    next();
+  },
+  login
+);
 
-// Register user
-safeRoute('post', '/register', [
-  check('name', 'Name is required').not().isEmpty(),
-  check('email', 'Please include a valid email').isEmail(),
-  check('password', 'Password must be 6 or more characters').isLength({ min: 6 }),
-  check('role', 'Role must be user or admin').optional().isIn(['user', 'admin']),
-], (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.log('Validation errors:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-}, register);
-
-// Login user
-safeRoute('post', '/login', [
-  check('email', 'Please include a valid email').isEmail(),
-  check('password', 'Password is required').exists(),
-], (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    console.log('Validation errors:', errors.array());
-    return res.status(400).json({ errors: errors.array() });
-  }
-  next();
-}, login);
-
-// Get current user
-safeRoute('get', '/me', protect, getMe);
+router.get('/me', protect, getMe);
 
 module.exports = router;
