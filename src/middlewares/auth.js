@@ -39,19 +39,28 @@ const User = require('../models/User');
 
 const protect = async (req, res, next) => {
   let token;
-  console.log('Protect middleware: Checking token');
+  console.log('Protect middleware: Checking token', {
+    authHeader: req.headers.authorization?.substring(0, 20) + '...'
+  });
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
       console.log('Protect middleware: Token found:', token.substring(0, 10) + '...');
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      console.log('Protect middleware: Token decoded:', decoded);
+      console.log('Protect middleware: Token decoded:', {
+        id: decoded.id,
+        issued: new Date(decoded.iat * 1000).toISOString(),
+        expires: new Date(decoded.exp * 1000).toISOString()
+      });
       req.user = await User.findById(decoded.id).select('-password');
       if (!req.user) {
         console.error('Protect middleware: User not found for ID:', decoded.id);
         return res.status(401).json({ message: 'User not found' });
       }
-      console.log('Protect middleware: User set:', req.user._id, 'Role:', req.user.role);
+      console.log('Protect middleware: User set:', {
+        userId: req.user._id,
+        role: req.user.role
+      });
       next();
     } catch (error) {
       console.error('Protect middleware error:', {
