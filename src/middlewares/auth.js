@@ -1,46 +1,35 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-// Middleware to protect routes
 const protect = async (req, res, next) => {
-  const authHeader = req.headers.authorization || req.headers.Authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer')) {
-    return res.status(401).json({ message: 'Not authorized, no token provided' });
-  }
-
-  const token = authHeader.split(' ')[1];
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id).select('-password');
-    if (!user) {
-      return res.status(401).json({ message: 'Not authorized, user not found' });
+  let token;
+  console.log('Protect middleware: Checking token');
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      console.log('Protect middleware: Token found:', token.substring(0, 10) + '...');
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      console.log('Protect middleware: Token decoded:', decoded);
+      req.user = await User.findById(decoded.id).select('-password');
+      if (!req.user) {
+        console.error('Protect middleware: User not found for ID:', decoded.id);
+        return res.status(401).json({ message: 'User not found' });
+      }
+      console.log('Protect middleware: User set:', req.user._id);
+      next();
+    } catch (error) {
+      console.error('Protect middleware error:', {
+        message: error.message,
+        stack: error.stack,
+        token: token ? token.substring(0, 10) + '...' : 'none',
+        errorDetails: JSON.stringify(error, Object.getOwnPropertyNames(error))
+      });
+      res.status(401).json({ message: 'Not authorized, token failed', error: error.message });
     }
-
-    if (decoded.role !== user.role) {
-      return res.status(403).json({ message: 'Role mismatch, access denied' });
-    }
-
-    req.user = user;
-    next();
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error('Token validation error:', error.message);
-    }
-    return res.status(401).json({ message: 'Not authorized, token verification failed' });
+  } else {
+    console.error('Protect middleware: No token provided');
+    res.status(401).json({ message: 'Not authorized, no token' });
   }
 };
 
-// Middleware for role-based access control
-const role = (allowedRoles = []) => {
-  return (req, res, next) => {
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'Access denied: insufficient permissions' });
-    }
-    next();
-  };
-};
-
-module.exports = { protect, role };
+module.exports = protect;
