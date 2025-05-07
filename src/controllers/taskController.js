@@ -307,6 +307,8 @@
 // };
 
 // module.exports = { getTasks, getTask, createTask, updateTask, deleteTask };
+console.log('Loading taskController.js');
+
 const Task = require('../models/Task');
 
 const getTasks = async (req, res) => {
@@ -406,7 +408,8 @@ const updateTask = async (req, res) => {
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (!task) return res.status(404).json({ message: 'Task not found' });
+    if (!
+task) return res.status(404).json({ message: 'Task not found' });
     if (task.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -481,8 +484,18 @@ const getHealth = async (req, res) => {
       message: error.message,
       stack: error.stack
     });
-    res.status(500).json({ status: 'unhealthy', mongodb: 'disconnected', error: error.message });
+    res.status(500).json({ message: 'Server error while checking health', error: error.message });
   }
 };
+
+console.log('Exporting taskController functions:', {
+  getTasks: typeof getTasks,
+  getTask: typeof getTask,
+  createTask: typeof createTask,
+  updateTask: typeof updateTask,
+  deleteTask: typeof deleteTask,
+  getTaskStats: typeof getTaskStats,
+  getHealth: typeof getHealth
+});
 
 module.exports = { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats, getHealth };
