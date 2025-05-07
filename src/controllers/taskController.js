@@ -190,6 +190,126 @@
 // };
 
 
+// const Task = require('../models/Task');
+
+// const getTasks = async (req, res) => {
+//   try {
+//     const tasks = await Task.find({ createdBy: req.user._id }).populate('assignedTo', 'name');
+//     res.status(200).json(tasks);
+//   } catch (error) {
+//     console.error('Get tasks error:', {
+//       message: error.message,
+//       stack: error.stack,
+//       userId: req.user?._id
+//     });
+//     res.status(500).json({ message: 'Server error while fetching tasks' });
+//   }
+// };
+
+// const getTask = async (req, res) => {
+//   try {
+//     const task = await Task.findById(req.params.id).populate('assignedTo', 'name');
+//     if (!task) return res.status(404).json({ message: 'Task not found' });
+//     if (task.createdBy.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: 'Unauthorized' });
+//     }
+//     res.status(200).json(task);
+//   } catch (error) {
+//     console.error('Get task error:', {
+//       message: error.message,
+//       stack: error.stack,
+//       taskId: req.params.id,
+//       userId: req.user?._id
+//     });
+//     res.status(500).json({ message: 'Server error while fetching task' });
+//   }
+// };
+
+// const createTask = async (req, res) => {
+//   try {
+//     if (!req.user || !req.user._id) {
+//       console.error('Create task error: Missing user ID', { body: req.body });
+//       return res.status(401).json({ message: 'Unauthorized: Missing user ID' });
+//     }
+//     console.log('Creating task with data:', {
+//       body: req.body,
+//       createdBy: req.user._id
+//     });
+//     const task = new Task({
+//       ...req.body,
+//       createdBy: req.user._id
+//     });
+//     const createdTask = await task.save();
+//     res.status(201).json(createdTask);
+//   } catch (error) {
+//     console.error('Create task error:', {
+//       message: error.message,
+//       stack: error.stack,
+//       body: req.body,
+//       userId: req.user?._id
+//     });
+//     res.status(500).json({ message: 'Server error while creating task', error: error.message });
+//   }
+// };
+
+// const updateTask = async (req, res) => {
+//   try {
+//     if (!req.user || !req.user._id) {
+//       console.error('Update task error: Missing user ID', { body: req.body, taskId: req.params.id });
+//       return res.status(401).json({ message: 'Unauthorized: Missing user ID' });
+//     }
+//     console.log('Updating task with data:', {
+//       taskId: req.params.id,
+//       body: req.body,
+//       userId: req.user._id
+//     });
+//     const task = await Task.findById(req.params.id);
+//     if (!task) return res.status(404).json({ message: 'Task not found' });
+//     if (task.createdBy.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: 'Unauthorized' });
+//     }
+//     const updatedTask = await Task.findByIdAndUpdate(
+//       req.params.id,
+//       { $set: req.body },
+//       { new: true, runValidators: true }
+//     );
+//     res.status(200).json(updatedTask);
+//   } catch (error) {
+//     console.error('Update task error:', {
+//       message: error.message,
+//       stack: error.stack,
+//       taskId: req.params.id,
+//       body: req.body,
+//       userId: req.user?._id
+//     });
+//     res.status(500).json({ message: 'Server error while updating task', error: error.message });
+//   }
+// };
+
+// const deleteTask = async (req, res) => {
+//   try {
+//     const task = await Task.findById(req.params.id);
+//     if (!task) return res.status(404).json({ message: 'Task not found' });
+//     if (task.createdBy.toString() !== req.user._id.toString()) {
+//       return res.status(403).json({ message: 'Unauthorized' });
+//     }
+//     await task.remove();
+//     res.status(200).json({ message: 'Task deleted' });
+//   } catch (error) {
+//     console.error('Delete task error:', {
+//       message: error.message,
+//       stack: error.stack,
+//       taskId: req.params.id,
+//       userId: req.user?._id
+//     });
+//     res.status(500).json({ message: 'Server error while deleting task' });
+//   }
+// };
+
+// module.exports = { getTasks, getTask, createTask, updateTask, deleteTask };
+
+
+
 const Task = require('../models/Task');
 
 const getTasks = async (req, res) => {
@@ -306,4 +426,64 @@ const deleteTask = async (req, res) => {
   }
 };
 
-module.exports = { getTasks, getTask, createTask, updateTask, deleteTask };
+const getTaskStats = async (req, res) => {
+  try {
+    if (!req.user || !req.user._id) {
+      console.error('Get task stats error: Missing user ID');
+      return res.status(401).json({ message: 'Unauthorized: Missing user ID' });
+    }
+    console.log('Fetching task stats for user:', req.user._id);
+
+    const stats = await Task.aggregate([
+      // Match tasks created by the user
+      { $match: { createdBy: req.user._id } },
+      // Group to compute totals
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          overdue: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $ne: ['$status', 'completed'] },
+                    { $lt: ['$dueDate', new Date()] }
+                  ]
+                },
+                1,
+                0
+              ]
+            }
+          }
+        }
+      },
+      // Project to format output
+      {
+        $project: {
+          _id: 0,
+          total: 1,
+          completed: 1,
+          overdue: 1
+        }
+      }
+    ]);
+
+    // If no tasks, return zeros
+    const result = stats.length > 0 ? stats[0] : { total: 0, completed: 0, overdue: 0 };
+    console.log('Task stats result:', result);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error('Get task stats error:', {
+      message: error.message,
+      stack: error.stack,
+      userId: req.user?._id
+    });
+    res.status(500).json({ message: 'Server error while fetching task stats', error: error.message });
+  }
+};
+
+module.exports = { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats };
