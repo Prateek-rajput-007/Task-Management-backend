@@ -408,8 +408,7 @@ const updateTask = async (req, res) => {
 const deleteTask = async (req, res) => {
   try {
     const task = await Task.findById(req.params.id);
-    if (!
-task) return res.status(404).json({ message: 'Task not found' });
+    if (!task) return res.status(404).json({ message: 'Task not found' });
     if (task.createdBy.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: 'Unauthorized' });
     }
@@ -429,22 +428,29 @@ task) return res.status(404).json({ message: 'Task not found' });
 const getTaskStats = async (req, res) => {
   try {
     if (!req.user || !req.user._id) {
-      console.error('Get task stats error: Missing user ID');
+      console.error('Get task stats error: Missing user ID', {
+        headers: req.headers,
+        auth: req.headers.authorization
+      });
       return res.status(401).json({ message: 'Unauthorized: Missing user ID' });
     }
-    console.log('Fetching task stats for user:', req.user._id);
+    console.log('Fetching task stats for user:', {
+      userId: req.user._id,
+      role: req.user.role,
+      authHeader: req.headers.authorization?.substring(0, 20) + '...'
+    });
 
     let tasks;
     try {
       tasks = await Task.find({ createdBy: req.user._id }).lean();
-      console.log('Tasks fetched:', tasks.length);
+      console.log('Tasks fetched for stats:', { count: tasks.length, userId: req.user._id });
     } catch (dbError) {
       console.error('Database query error in getTaskStats:', {
         message: dbError.message,
         stack: dbError.stack,
         userId: req.user._id
       });
-      return res.status(200).json({ total: 0, completed: 0, overdue: 0 });
+      return res.status(500).json({ message: 'Database error while fetching tasks', error: dbError.message });
     }
 
     const now = new Date();
@@ -462,13 +468,15 @@ const getTaskStats = async (req, res) => {
       { total: 0, completed: 0, overdue: 0 }
     );
 
-    console.log('Task stats result:', stats);
+    console.log('Task stats computed:', { stats, userId: req.user._id });
     res.status(200).json(stats);
   } catch (error) {
     console.error('Get task stats error:', {
       message: error.message,
       stack: error.stack,
       userId: req.user?._id,
+      headers: req.headers,
+      auth: req.headers.authorization?.substring(0, 20) + '...',
       errorDetails: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
     res.status(500).json({ message: 'Server error while fetching task stats', error: error.message });
