@@ -5,20 +5,17 @@ const { getTasks, getTask, createTask, updateTask, deleteTask } = require('../co
 const { check, body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
-// Middleware to log request body
 const logRequestBody = (req, res, next) => {
   console.log('Raw request body:', JSON.stringify(req.body, null, 2));
   next();
 };
 
-// Sanitize priority
 const sanitizePriority = (value) => {
   const validPriorities = ['low', 'medium', 'high'];
   return validPriorities.includes(value) ? value : 'medium';
 };
 
 router.get('/', protect, getTasks);
-
 router.get('/:id', protect, getTask);
 
 router.post(
