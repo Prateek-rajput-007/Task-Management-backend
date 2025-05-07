@@ -71,11 +71,10 @@
 // router.delete('/:id', protect, deleteTask);
 
 // module.exports = router;
-
 const express = require('express');
 const router = express.Router();
 const { protect } = require('../middlewares/auth');
-const { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats } = require('../controllers/taskController');
+const { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats, getHealth } = require('../controllers/taskController');
 const { check, body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
 
@@ -92,6 +91,7 @@ const sanitizePriority = (value) => {
 router.get('/', protect, getTasks);
 router.get('/:id', protect, getTask);
 router.get('/stats', protect, getTaskStats);
+router.get('/health', getHealth);
 
 router.post(
   '/',
