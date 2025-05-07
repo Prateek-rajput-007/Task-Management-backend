@@ -124,7 +124,7 @@ router.put(
   logRequestBody,
   [
     check('title', 'Title is required').optional().not().isEmpty(),
-    check('dueDate', 'Due date must be a valid date').optional().isISO8601().toDate(),
+    check('dueDate', 'Due date must be a valid date').isISO8601().toDate(),
     check('priority').optional().customSanitizer(sanitizePriority),
     check('status', 'Status must be todo, in-progress, or completed').optional().isIn(['todo', 'in-progress', 'completed']),
     body('assignedTo', 'AssignedTo must be a valid ObjectId or null').optional().custom((value) => {
