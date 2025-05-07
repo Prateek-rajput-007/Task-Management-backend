@@ -73,7 +73,7 @@
 // module.exports = router;
 const express = require('express');
 const router = express.Router();
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require('../middlewares/auth');
 const { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats, getHealth } = require('../controllers/taskController');
 const { check, body, validationResult } = require('express-validator');
 const mongoose = require('mongoose');
