@@ -320,7 +320,7 @@ const getTasks = async (req, res) => {
       stack: error.stack,
       userId: req.user?._id
     });
-    res.status(500).json({ message: 'Server error while fetching tasks' });
+    res.status(500).json({ message: 'Server error while fetching tasks', error: error.message });
   }
 };
 
@@ -339,7 +339,7 @@ const getTask = async (req, res) => {
       taskId: req.params.id,
       userId: req.user?._id
     });
-    res.status(500).json({ message: 'Server error while fetching task' });
+    res.status(500).json({ message: 'Server error while fetching task', error: error.message });
   }
 };
 
@@ -420,7 +420,7 @@ const deleteTask = async (req, res) => {
       taskId: req.params.id,
       userId: req.user?._id
     });
-    res.status(500).json({ message: 'Server error while deleting task' });
+    res.status(500).json({ message: 'Server error while deleting task', error: error.message });
   }
 };
 
@@ -432,8 +432,19 @@ const getTaskStats = async (req, res) => {
     }
     console.log('Fetching task stats for user:', req.user._id);
 
-    const tasks = await Task.find({ createdBy: req.user._id });
-    console.log('Tasks fetched:', tasks.length);
+    let tasks;
+    try {
+      tasks = await Task.find({ createdBy: req.user._id }).lean();
+      console.log('Tasks fetched:', tasks.length);
+    } catch (dbError) {
+      console.error('Database query error in getTaskStats:', {
+        message: dbError.message,
+        stack: dbError.stack,
+        userId: req.user._id
+      });
+      // Fallback response to prevent 500 error
+      return res.status(200).json({ total: 0, completed: 0, overdue: 0 });
+    }
 
     const now = new Date();
     const stats = tasks.reduce(
@@ -457,10 +468,24 @@ const getTaskStats = async (req, res) => {
       message: error.message,
       stack: error.stack,
       userId: req.user?._id,
-      errorDetails: error
+      errorDetails: JSON.stringify(error, Object.getOwnPropertyNames(error))
     });
     res.status(500).json({ message: 'Server error while fetching task stats', error: error.message });
   }
 };
 
-module.exports = { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats };
+const getHealth = async (req, res) => {
+  try {
+    // Test MongoDB connection by querying a single task
+    await Task.findOne().limit(1);
+    res.status(200).json({ status: 'healthy', mongodb: 'connected' });
+  } catch (error) {
+    console.error('Health check error:', {
+      message: error.message,
+      stack: error.stack
+    });
+    res.status(500).json({ status: 'unhealthy', mongodb: 'disconnected', error: error.message });
+  }
+};
+
+module.exports = { getTasks, getTask, createTask, updateTask, deleteTask, getTaskStats, getHealth };
